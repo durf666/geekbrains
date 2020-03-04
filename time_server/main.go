@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -15,7 +16,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	control := make(chan bool)
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -23,14 +24,19 @@ func main() {
 			continue
 		}
 
-		handleConn(conn)
-
+		handleConn(conn, control)
+		z := <-control
+		fmt.Println(z)
+		if z {
+			time.Sleep(1 * time.Second)
+			break
+		}
 	}
 }
-func handleConn(c net.Conn) {
-	// control := make(chan bool)
+func handleConn(c net.Conn, control chan bool) {
+
 	defer c.Close()
-	go readConn(c)
+	go readConn(c, control)
 	for {
 		_, err := io.WriteString(c, time.Now().Format("15:04:05\n\r"))
 		if err != nil {
@@ -39,26 +45,17 @@ func handleConn(c net.Conn) {
 		time.Sleep(1 * time.Second)
 	}
 }
-func Equal(a, b []byte) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i, v := range a {
-		if v != b[i] {
-			return false
-		}
-	}
-	return true
-}
-func readConn(c net.Conn) {
-	for {
 
+func readConn(c net.Conn, control chan bool) {
+	for {
 		bufReader := bufio.NewReader(c)
-		bytes, _ := bufReader.ReadBytes('\n')
-		fmt.Println(bytes)
+		inputBytes, _ := bufReader.ReadBytes('\n')
+		fmt.Println(inputBytes)
 		b := []byte{101, 120, 105, 116, 13, 10}
-		if Equal(bytes, b) {
+		fmt.Println("111")
+		if bytes.Equal(inputBytes, b) {
 			c.Close()
+			control <- true
 			break
 		}
 
