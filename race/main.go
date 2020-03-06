@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"sync"
 	"time"
@@ -34,36 +35,37 @@ func main() {
 		timer <- timeToStart
 		// wg.Done()
 		wg.Wait()
-		raceTime := 100000 / (rand.Intn(100) + 1)
+		raceTime := 10000000000 / (rand.Intn(100) + 1)
 		time.Sleep(time.Duration(raceTime) * time.Millisecond)
 		raceT <- raceTime
 		// wg2.Done()
 	}()
+
 	go func() {
+		// timeout := time.Now().Add(1 * time.Minute)
 		for {
 			select {
-			case _, ok := <-ready:
-				if ok {
+			case <-ready:
+				{
 					fmt.Println("car is ready.")
 					wg.Done()
-				} else {
-					fmt.Println("Channel closed!")
 				}
-			default:
+			case <-time.After(10 * time.Second):
+				log.Fatal("car is stolen by UFO")
 			}
 		}
 	}()
 	go func() {
+		// timeout := time.Now().Local().Add(1 * time.Minute)
 		for {
 			select {
-			case x, ok := <-raceT:
-				if ok {
+			case x := <-raceT:
+				{
 					fmt.Printf("RaceTime %d .\n", x)
 					wg2.Done()
-				} else {
-					fmt.Println("Channel closed!")
 				}
-			default:
+			case <-time.After(10 * time.Second):
+				log.Fatal("car is stolen by UFO")
 			}
 		}
 	}()
